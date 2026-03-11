@@ -1,19 +1,20 @@
 # 🏥 Health Assistant — Multi-LLM Medical Helper
 
-An AI-powered application that integrates multiple LLMs to help sick people find the right medical care.
+An AI-powered application that integrates multiple LLM agents (powered by **Ollama**) to help sick people find the right medical care.
 
 ## Overview
 
-This application uses **two specialized LLM agents** that work together:
+This application uses **two specialized LLM agents** that work together, both running locally via [Ollama](https://ollama.com):
 
-1. **Symptom Collector Agent (LLM 1)** — Interviews the user about their symptoms, age, gender, and location through a conversational interface.
-2. **Doctor Finder Agent (LLM 2)** — Takes the collected patient information and recommends suitable hospitals, clinics, and doctors in the user's location.
+1. **Symptom Collector Agent (LLM Agent 1)** — Interviews the user about their symptoms, age, gender, and location through a conversational interface.
+2. **Doctor Finder Agent (LLM Agent 2)** — Takes the collected patient information and recommends suitable hospitals, clinics, and doctors in the user's location.
 
 ## Tech Stack
 
 - **Java 21**
 - **Spring Boot 3.4.3**
-- **Spring AI** (OpenAI integration)
+- **Spring AI 1.0.0-M6** (Ollama integration)
+- **Ollama** with **llama3.2** model (local LLM)
 - **Maven** (build tool)
 - **HTML/CSS/JS** (chat UI)
 
@@ -27,7 +28,7 @@ User <-> ChatController <-> ChatOrchestrationService
           SymptomCollectorAgent           DoctorFinderAgent
              (LLM Agent 1)                 (LLM Agent 2)
                     │                             │
-                    └──────── OpenAI API ──────────┘
+                    └───── Ollama (llama3.2) ──────┘
 ```
 
 ### Flow
@@ -35,7 +36,7 @@ User <-> ChatController <-> ChatOrchestrationService
 1. User sends a message via the chat interface
 2. `ChatOrchestrationService` routes it to **Agent 1** (Symptom Collector)
 3. Agent 1 asks about symptoms, age, gender, and location
-4. Once all info is gathered, Agent 1 produces a structured summary
+4. Once all info is gathered, Agent 1 produces a structured JSON summary
 5. The orchestrator automatically forwards the summary to **Agent 2** (Doctor Finder)
 6. Agent 2 recommends healthcare providers near the user's location
 7. User can ask follow-up questions to Agent 2
@@ -44,15 +45,19 @@ User <-> ChatController <-> ChatOrchestrationService
 
 - **Java 21** or later
 - **Maven 3.8+**
-- **OpenAI API key** (get one at https://platform.openai.com/api-keys)
+- **Ollama** installed and running locally (see [ollama.com](https://ollama.com) for installation)
 
 ## Getting Started
 
-### 1. Set your OpenAI API key
+### 1. Install and start Ollama
+
+Download and install Ollama from [https://ollama.com](https://ollama.com), then pull the required model:
 
 ```bash
-export OPENAI_API_KEY=sk-your-api-key-here
+ollama pull llama3.2
 ```
+
+Make sure Ollama is running (it typically starts automatically after installation and listens on `http://localhost:11434`).
 
 ### 2. Build the project
 
@@ -74,7 +79,24 @@ mvn clean package
 
 ### 4. Open the chat UI
 
-Navigate to: **http://localhost:8080**
+Navigate to: **http://localhost:8081**
+
+## Configuration
+
+The Ollama connection is configured in `src/main/resources/application.yml`:
+
+```yaml
+spring:
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        model: llama3.2
+        options:
+          temperature: 0.7
+```
+
+You can change the model to any Ollama-supported model (e.g., `mistral`, `llama3.1`, `gemma2`) by updating the `model` property and pulling the model with `ollama pull <model-name>`.
 
 ## API Endpoints
 
@@ -118,6 +140,14 @@ src/main/java/com/demoapp/healthassistant/
 └── exception/GlobalExceptionHandler.java
 ```
 
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| `Connection refused` on port 11434 | Make sure Ollama is running (`ollama serve`) |
+| Model not found | Run `ollama pull llama3.2` to download the model |
+| Slow responses | Local LLM performance depends on your hardware; consider using a smaller model |
+
 ## Disclaimer
 
-⚠️ This application is for **demonstration purposes only**. Always consult a qualified healthcare professional for medical concerns.
+⚠️ This application is for **demonstration purposes only**. It does not provide real medical advice. Always consult a qualified healthcare professional for medical concerns.
